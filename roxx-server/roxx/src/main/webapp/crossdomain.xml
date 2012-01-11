@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+    This file is needed for flash to make it possible to load data
+    from different domains as the one that provides the .swf file.
+    
+    If one runs a built .swf file just via a double click that
+    behaviour is the same as if the .swf and the backend are on
+    different domains. So in a real world scenario or with a complete
+    build-process that file would not be needed.
+ -->
+<cross-domain-policy>
+<allow-access-from domain="*" />
+</cross-domain-policy>

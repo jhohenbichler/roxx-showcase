@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+
+			   close="PopUpManager.removePopUp(this);"
+			   xmlns:roxx="roxx.*"
+			   creationComplete="titlewindow1_creationCompleteHandler(event)"
+			   backgroundColor="0x000000"
+			   >
+
+
+	<fx:Declarations>
+
+		
+		<!-- MARKER-02XXX: validators -->
+		<roxx:GradeValidator id="gradeValidator"
+							 required="true"
+							 property="text"
+							 requiredFieldError="Please enter a valid grade."
+							 />
+
+		<mx:StringValidator id="nameValidator"
+							required="true"
+							property="text"
+							minLength="1"
+							tooShortError="Please enter the name of the route."
+							requiredFieldError="Please enter the name of the route."
+							/>
+
+		<mx:StringValidator id="countryValidator"
+							required="true"
+							property="text"
+							minLength="2"
+							tooShortError="Please enter a valid country-code like DE for germany."
+							requiredFieldError="Please enter a valid country-code like DE for germany."
+							/>
+
+		<mx:StringValidator id="regionValidator"
+							required="true"
+							property="text"
+							minLength="1"
+							tooShortError="Please enter a valid region."
+							requiredFieldError="Please enter a valid region."
+							/>
+
+		<mx:StringValidator id="sectorValidator"
+							required="true"
+							property="text"
+							minLength="1"
+							tooShortError="Please enter a sector region."
+							requiredFieldError="Please enter a sector region."
+							/>
+
+	</fx:Declarations>
+
+
+
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.air.filesystem.FileUtil;
+			
+			import mx.events.FlexEvent;
+			import mx.events.ValidationResultEvent;
+			import mx.managers.PopUpManager;
+			import mx.utils.ObjectUtil;
+			import mx.validators.ValidationResult;
+			import mx.validators.Validator;
+			
+			import roxx.RoxxUtils;
+
+			public var popupSaveOrUpdateHandler:Function;
+
+			[Bindable]
+			public var route: Object;
+
+			public var createNew:Boolean;
+
+
+			protected function titlewindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				this.title = createNew == true ? "Create new route" : "Edit existing route";
+				if(createNew == true){
+					route = new Object();
+				}
+				setValidatorSources();
+			}
+			
+			protected function setValidatorSources():void{
+				throw new Error("to be overwritten");
+			}
+
+			protected function gradeToModel():void{
+				throw new Error("to be overwritten");
+			}
+			
+			protected function saveOrUpdate():void{
+				throw new Error("to be overwritten");
+			}
+
+			
+			protected static function gradeInputToModel(model: *, input: String):void {
+
+				const regex:RegExp = /([0-9]{1,2})([+-]?)/;
+
+				const regexResult:Array = regex.exec(input);
+				trace(regexResult);
+				const gradeValue:Number = new Number(regexResult[1]);
+				const gradeQualifier:String = regexResult[2];
+
+				model.value = gradeValue;
+
+				const gradeQualiferId:Number = RoxxUtils.gradeQualifierDisplayStringToId(gradeQualifier);
+				if(isNaN(gradeQualiferId)){
+					// if a grade qualifier was defined before changes are made and now it is not set, then remove it from the Object
+					if(model.qualifier){
+						model.qualifier = null;
+					}
+				} else {
+					if(!model.qualifier){
+						model.qualifier = new Object();
+					}
+					model.qualifier.id = gradeQualiferId;
+				}
+			}
+			
+			
+			private function checkValidation(validator: Validator):Boolean{
+				var resultEvent: ValidationResultEvent;
+				resultEvent = validator.validate();
+				if(resultEvent.results == null || resultEvent.results.length == 0){
+					return true;
+				}
+				return false;
+			}
+			
+			private function runValidators():Boolean{
+				
+				var res:Boolean = true;
+				
+				res = res && checkValidation(nameValidator);
+				res = res && checkValidation(countryValidator);
+				res = res && checkValidation(regionValidator);
+				res = res && checkValidation(sectorValidator);
+				res = res && checkValidation(gradeValidator);
+				
+				return res;
+			}
+			
+			protected function saveButton_clickHandler(event:MouseEvent):void {
+				if(runValidators() == true){
+					if(!route.grade){
+						route.grade = new Object();
+						route.grade.qualifier = new Object();
+					}
+					gradeToModel();
+					saveOrUpdate();
+					PopUpManager.removePopUp(this);
+				}
+			}
+			
+
+		]]>
+	</fx:Script>
+	
+	
+
+</s:TitleWindow>

@@ -1,0 +1,21 @@
+<project name="build roxx deployable" default="build">
+
+	<target name="build">
+			
+		<echo>Calling ant build for client module core... </echo>
+		<ant antfile="../roxx-ui_shared/build.xml" inheritall="false"/>
+		
+		<echo>Calling ant build for the client application... (target: ${clientapp.target}) </echo>
+		<ant antfile="../roxx-ui_flex4flashPlayer/build.xml" inheritall="false" target="build"/>
+		
+	</target>
+
+
+	<target name="copy.to.serverproject" >
+		<copy verbose="true" file="../roxx-ui_flex4flashPlayer/ant-build/Main.swf" tofile="../roxx-server/roxx/src/main/webapp/Main.swf" />
+	</target>
+
+	<target name="build.and.copy.to.serverproject" depends="build, copy.to.serverproject" />
+
+	
+</project>

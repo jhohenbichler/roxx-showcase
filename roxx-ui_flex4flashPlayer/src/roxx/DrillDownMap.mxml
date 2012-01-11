@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:ammap="http://www.ammap.com/com_internal"
+
+		  width="100%"
+		  height="100%"
+		  creationComplete="vgroup1_creationCompleteHandler(event)"
+		  >
+
+
+	<fx:Metadata>
+		[Event(name="selectedAreaChanged", type="roxx.SelectedMapAreaChangedEvent")]
+	</fx:Metadata>
+
+
+	<fx:Declarations>
+
+
+		<!-- Drill-down map can be made with one amMap object and several data sets.
+		Any map object can be linked to another data set - clicking on it will tell amMap to build another map with new data. -->
+
+		<!-- this button and array of countries is used by several data sets, that's why they are declared outside. -->
+		<!-- this button is a link to main data set (continents map) -->
+		<ammap:MapMovie id="backButton"
+						movieClass="{_homeIcon}"
+						rollOverColor="#CC0000"
+						labelColor="#FFFFFFF"
+						labelRollOverColor="#CC0000"
+						useTargetsZoomValues="true"
+						url="{dsMain}"
+						marginLeft="100"
+						marginTop="45"
+						click="backButton_clickHandler(event)"
+						>
+			<ammap:label><![CDATA[<b>Back to home</b>]]></ammap:label>
+		</ammap:MapMovie>
+
+		<fx:Array id="countries">
+			<ammap:MapArea instanceName="borders" color="#FFFFFF" mouseEnabled="false"/>
+			<ammap:MapArea title="AFGHANISTAN" instanceName="AF"></ammap:MapArea>
+			<ammap:MapArea title="ALAND ISLANDS" instanceName="AX"></ammap:MapArea>
+			<ammap:MapArea title="ALBANIA" instanceName="AL"></ammap:MapArea>
+			<ammap:MapArea title="ALGERIA" instanceName="DZ"></ammap:MapArea>
+			<ammap:MapArea title="ANDORRA" instanceName="AD"></ammap:MapArea>
+			<ammap:MapArea title="ANGOLA" instanceName="AO"></ammap:MapArea>
+			<ammap:MapArea title="ANGUILLA" instanceName="AI"></ammap:MapArea>
+			<ammap:MapArea title="ANTIGUA AND BARBUDA" instanceName="AG"></ammap:MapArea>
+			<ammap:MapArea title="ARGENTINA" instanceName="AR"></ammap:MapArea>
+			<ammap:MapArea title="ARMENIA" instanceName="AM"></ammap:MapArea>
+			<ammap:MapArea title="ARUBA" instanceName="AW"></ammap:MapArea>
+			<ammap:MapArea title="AUSTRALIA" instanceName="AU"></ammap:MapArea>
+			<ammap:MapArea title="AUSTRIA" instanceName="AT"></ammap:MapArea>
+			<ammap:MapArea title="AZERBAIJAN" instanceName="AZ"></ammap:MapArea>
+			<ammap:MapArea title="BAHAMAS" instanceName="BS"></ammap:MapArea>
+			<ammap:MapArea title="BAHRAIN" instanceName="BH"></ammap:MapArea>
+			<ammap:MapArea title="BANGLADESH" instanceName="BD"></ammap:MapArea>
+			<ammap:MapArea title="BARBADOS" instanceName="BB"></ammap:MapArea>
+			<ammap:MapArea title="BELARUS" instanceName="BY"></ammap:MapArea>
+			<ammap:MapArea title="BELGIUM" instanceName="BE"></ammap:MapArea>
+			<ammap:MapArea title="BELIZE" instanceName="BZ"></ammap:MapArea>
+			<ammap:MapArea title="BENIN" instanceName="BJ"></ammap:MapArea>
+			<ammap:MapArea title="BERMUDA" instanceName="BM"></ammap:MapArea>
+			<ammap:MapArea title="BHUTAN" instanceName="BT"></ammap:MapArea>
+			<ammap:MapArea title="BOLIVIA" instanceName="BO"></ammap:MapArea>
+			<ammap:MapArea title="BOSNIA AND HERZEGOVINA" instanceName="BA"></ammap:MapArea>
+			<ammap:MapArea title="BOTSWANA" instanceName="BW"></ammap:MapArea>
+			<ammap:MapArea title="BRAZIL" instanceName="BR"></ammap:MapArea>
+			<ammap:MapArea title="BRUNEI DARUSSALAM" instanceName="BN"></ammap:MapArea>
+			<ammap:MapArea title="BULGARIA" instanceName="BG"></ammap:MapArea>
+			<ammap:MapArea title="BURKINA FASO" instanceName="BF"></ammap:MapArea>
+			<ammap:MapArea title="BURUNDI" instanceName="BI"></ammap:MapArea>
+			<ammap:MapArea title="CAMBODIA" instanceName="KH"></ammap:MapArea>
+			<ammap:MapArea title="CAMEROON" instanceName="CM"></ammap:MapArea>
+			<ammap:MapArea title="CANADA" instanceName="CA"></ammap:MapArea>
+			<ammap:MapArea title="CAPE VERDE" instanceName="CV"></ammap:MapArea>
+			<ammap:MapArea title="CAYMAN ISLANDS" instanceName="KY"></ammap:MapArea>
+			<ammap:MapArea title="CENTRAL AFRICAN REPUBLIC" instanceName="CF"></ammap:MapArea>
+			<ammap:MapArea title="CHAD" instanceName="TD"></ammap:MapArea>
+			<ammap:MapArea title="CHILE" instanceName="CL"></ammap:MapArea>
+			<ammap:MapArea title="CHINA" instanceName="CN"></ammap:MapArea>
+			<ammap:MapArea title="COLOMBIA" instanceName="CO"></ammap:MapArea>
+			<ammap:MapArea title="COMOROS" instanceName="KM"></ammap:MapArea>
+			<ammap:MapArea title="REPUBLIC OF CONGO" instanceName="CG"></ammap:MapArea>
+			<ammap:MapArea title="THE DEMOCRATIC REPUBLIC OF THE CONGO" instanceName="CD"></ammap:MapArea>
+			<ammap:MapArea title="COSTA RICA" instanceName="CR"></ammap:MapArea>
+			<ammap:MapArea title="COTE D'IVOIRE" instanceName="CI"></ammap:MapArea>
+			<ammap:MapArea title="CROATIA" instanceName="HR"></ammap:MapArea>
+			<ammap:MapArea title="CUBA" instanceName="CU"></ammap:MapArea>
+			<ammap:MapArea title="CYPRUS" instanceName="CY"></ammap:MapArea>
+			<ammap:MapArea title="CZECH REPUBLIC" instanceName="CZ"></ammap:MapArea>
+			<ammap:MapArea title="DENMARK" instanceName="DK"></ammap:MapArea>
+			<ammap:MapArea title="DJIBOUTI" instanceName="DJ"></ammap:MapArea>
+			<ammap:MapArea title="DOMINICA" instanceName="DM"></ammap:MapArea>
+			<ammap:MapArea title="DOMINICAN REPUBLIC" instanceName="DO"></ammap:MapArea>
+			<ammap:MapArea title="ECUADOR" instanceName="EC"></ammap:MapArea>
+			<ammap:MapArea title="EGYPT" instanceName="EG"></ammap:MapArea>
+			<ammap:MapArea title="EL SALVADOR" instanceName="SV"></ammap:MapArea>
+			<ammap:MapArea title="EQUATORIAL GUINEA" instanceName="GQ"></ammap:MapArea>
+			<ammap:MapArea title="ERITREA" instanceName="ER"></ammap:MapArea>
+			<ammap:MapArea title="ESTONIA" instanceName="EE"></ammap:MapArea>
+			<ammap:MapArea title="ETHIOPIA" instanceName="ET"></ammap:MapArea>
+			<ammap:MapArea title="FAEROE ISLANDS" instanceName="FO"></ammap:MapArea>
+			<ammap:MapArea title="FALKLAND ISLANDS" instanceName="FK"></ammap:MapArea>
+			<ammap:MapArea title="FIJI" instanceName="FJ"></ammap:MapArea>
+			<ammap:MapArea title="FINLAND" instanceName="FI"></ammap:MapArea>
+			<ammap:MapArea title="FRANCE" instanceName="FR"></ammap:MapArea>
+			<ammap:MapArea title="FRENCH GUIANA" instanceName="GF"></ammap:MapArea>
+			<ammap:MapArea title="GABON" instanceName="GA"></ammap:MapArea>
+			<ammap:MapArea title="GAMBIA, THE" instanceName="GM"></ammap:MapArea>
+			<ammap:MapArea title="GEORGIA" instanceName="GE"></ammap:MapArea>
+			<ammap:MapArea title="GERMANY" instanceName="DE"></ammap:MapArea>
+			<ammap:MapArea title="GHANA" instanceName="GH"></ammap:MapArea>
+			<ammap:MapArea title="GREECE" instanceName="GR"></ammap:MapArea>
+			<ammap:MapArea title="GREENLAND" instanceName="GL"></ammap:MapArea>
+			<ammap:MapArea title="GRENADA" instanceName="GD"></ammap:MapArea>
+			<ammap:MapArea title="GUADELOUPE" instanceName="GP"></ammap:MapArea>
+			<ammap:MapArea title="GUATEMALA" instanceName="GT"></ammap:MapArea>
+			<ammap:MapArea title="GUINEA" instanceName="GN"></ammap:MapArea>
+			<ammap:MapArea title="GUINEA-BISSAU" instanceName="GW"></ammap:MapArea>
+			<ammap:MapArea title="GUYANA" instanceName="GY"></ammap:MapArea>
+			<ammap:MapArea title="HAITI" instanceName="HT"></ammap:MapArea>
+			<ammap:MapArea title="HONDURAS" instanceName="HN"></ammap:MapArea>
+			<ammap:MapArea title="HONG KONG" instanceName="HK"></ammap:MapArea>
+			<ammap:MapArea title="HUNGARY" instanceName="HU"></ammap:MapArea>
+			<ammap:MapArea title="ICELAND" instanceName="IS"></ammap:MapArea>
+			<ammap:MapArea title="INDIA" instanceName="IN"></ammap:MapArea>
+			<ammap:MapArea title="INDONESIA" instanceName="ID"></ammap:MapArea>
+			<ammap:MapArea title="IRAN" instanceName="IR"></ammap:MapArea>
+			<ammap:MapArea title="IRAQ" instanceName="IQ"></ammap:MapArea>
+			<ammap:MapArea title="IRELAND" instanceName="IE"></ammap:MapArea>
+			<ammap:MapArea title="ISRAEL" instanceName="IL"></ammap:MapArea>
+			<ammap:MapArea title="ITALY" instanceName="IT"></ammap:MapArea>
+			<ammap:MapArea title="JAMAICA" instanceName="JM"></ammap:MapArea>
+			<ammap:MapArea title="JAPAN" instanceName="JP"></ammap:MapArea>
+			<ammap:MapArea title="JORDAN" instanceName="JO"></ammap:MapArea>
+			<ammap:MapArea title="KAZAKHSTAN" instanceName="KZ"></ammap:MapArea>
+			<ammap:MapArea title="KENYA" instanceName="KE"></ammap:MapArea>
+			<ammap:MapArea title="NAURU" instanceName="NR"></ammap:MapArea>
+			<ammap:MapArea title="NORTH KOREA" instanceName="KP"></ammap:MapArea>
+			<ammap:MapArea title="SOUTH KOREA" instanceName="KR"></ammap:MapArea>
+			<ammap:MapArea title="KOSOVO" instanceName="KV"></ammap:MapArea>
+			<ammap:MapArea title="KUWAIT" instanceName="KW"></ammap:MapArea>
+			<ammap:MapArea title="KYRGYZSTAN" instanceName="KG"></ammap:MapArea>
+			<ammap:MapArea title="LAO PEOPLE'S DEMOCRATIC REPUBLIC" instanceName="LA"></ammap:MapArea>
+			<ammap:MapArea title="LATVIA" instanceName="LV"></ammap:MapArea>
+			<ammap:MapArea title="LEBANON" instanceName="LB"></ammap:MapArea>
+			<ammap:MapArea title="LESOTHO" instanceName="LS"></ammap:MapArea>
+			<ammap:MapArea title="LIBERIA" instanceName="LR"></ammap:MapArea>
+			<ammap:MapArea title="LIBYA" instanceName="LY"></ammap:MapArea>
+			<ammap:MapArea title="LIECHTENSTEIN" instanceName="LI"></ammap:MapArea>
+			<ammap:MapArea title="LITHUANIA" instanceName="LT"></ammap:MapArea>
+			<ammap:MapArea title="LUXEMBOURG" instanceName="LU"></ammap:MapArea>
+			<ammap:MapArea title="MACEDONIA" instanceName="MK"></ammap:MapArea>
+			<ammap:MapArea title="MADAGASCAR" instanceName="MG"></ammap:MapArea>
+			<ammap:MapArea title="MALAWI" instanceName="MW"></ammap:MapArea>
+			<ammap:MapArea title="MALAYSIA" instanceName="MY"></ammap:MapArea>
+			<ammap:MapArea title="MALI" instanceName="ML"></ammap:MapArea>
+			<ammap:MapArea title="MALTA" instanceName="MT"></ammap:MapArea>
+			<ammap:MapArea title="MARTINIQUE" instanceName="MQ"></ammap:MapArea>
+			<ammap:MapArea title="MAURITANIA" instanceName="MR"></ammap:MapArea>
+			<ammap:MapArea title="MAURITIUS" instanceName="MU"></ammap:MapArea>
+			<ammap:MapArea title="MEXICO" instanceName="MX"></ammap:MapArea>
+			<ammap:MapArea title="MOLDOVA" instanceName="MD"></ammap:MapArea>
+			<ammap:MapArea title="MONGOLIA" instanceName="MN"></ammap:MapArea>
+			<ammap:MapArea title="MONTENEGRO" instanceName="ME"></ammap:MapArea>
+			<ammap:MapArea title="MONTSERRAT" instanceName="MS"></ammap:MapArea>
+			<ammap:MapArea title="MOROCCO" instanceName="MA"></ammap:MapArea>
+			<ammap:MapArea title="MOZAMBIQUE" instanceName="MZ"></ammap:MapArea>
+			<ammap:MapArea title="MYANMAR" instanceName="MM"></ammap:MapArea>
+			<ammap:MapArea title="NAMIBIA" instanceName="NA"></ammap:MapArea>
+			<ammap:MapArea title="NAURU" instanceName="NR"></ammap:MapArea>
+			<ammap:MapArea title="NEPAL" instanceName="NP"></ammap:MapArea>
+			<ammap:MapArea title="NETHERLANDS" instanceName="NL"></ammap:MapArea>
+			<ammap:MapArea title="NETHERLANDS ANTILLES" instanceName="AN"></ammap:MapArea>
+			<ammap:MapArea title="NEW CALEDONIA" instanceName="NC"></ammap:MapArea>
+			<ammap:MapArea title="NEW ZEALAND" instanceName="NZ"></ammap:MapArea>
+			<ammap:MapArea title="NICARAGUA" instanceName="NI"></ammap:MapArea>
+			<ammap:MapArea title="NIGER" instanceName="NE"></ammap:MapArea>
+			<ammap:MapArea title="NIGERIA" instanceName="NG"></ammap:MapArea>
+			<ammap:MapArea title="NORWAY" instanceName="NO"></ammap:MapArea>
+			<ammap:MapArea title="OMAN" instanceName="OM"></ammap:MapArea>
+			<ammap:MapArea title="PAKISTAN" instanceName="PK"></ammap:MapArea>
+			<ammap:MapArea title="PALAU" instanceName="PW"></ammap:MapArea>
+			<ammap:MapArea title="PALESTINIAN TERRITORIES" instanceName="PS"></ammap:MapArea>
+			<ammap:MapArea title="PANAMA" instanceName="PA"></ammap:MapArea>
+			<ammap:MapArea title="PAPUA NEW GUINEA" instanceName="PG"></ammap:MapArea>
+			<ammap:MapArea title="PARAGUAY" instanceName="PY"></ammap:MapArea>
+			<ammap:MapArea title="PERU" instanceName="PE"></ammap:MapArea>
+			<ammap:MapArea title="PHILIPPINES" instanceName="PH"></ammap:MapArea>
+			<ammap:MapArea title="POLAND" instanceName="PL"></ammap:MapArea>
+			<ammap:MapArea title="PORTUGAL" instanceName="PT"></ammap:MapArea>
+			<ammap:MapArea title="PUERTO RICO" instanceName="PR"></ammap:MapArea>
+			<ammap:MapArea title="QATAR" instanceName="QA"></ammap:MapArea>
+			<ammap:MapArea title="REUNION" instanceName="RE"></ammap:MapArea>
+			<ammap:MapArea title="ROMANIA" instanceName="RO"></ammap:MapArea>
+			<ammap:MapArea title="RUSSIAN FEDERATION" instanceName="RU"></ammap:MapArea>
+			<ammap:MapArea title="RWANDA" instanceName="RW"></ammap:MapArea>
+			<ammap:MapArea title="SAINT KITTS AND NEVIS" instanceName="KN"></ammap:MapArea>
+			<ammap:MapArea title="SAINT LUCIA" instanceName="LC"></ammap:MapArea>
+			<ammap:MapArea title="SAINT MARTIN" instanceName="MF"></ammap:MapArea>
+			<ammap:MapArea title="SAINT VINCENT AND THE GRENADINES" instanceName="VC"></ammap:MapArea>
+			<ammap:MapArea title="SAMOA" instanceName="WS"></ammap:MapArea>
+			<ammap:MapArea title="SAO TOME AND PRINCIPE" instanceName="ST"></ammap:MapArea>
+			<ammap:MapArea title="SAUDI ARABIA" instanceName="SA"></ammap:MapArea>
+			<ammap:MapArea title="SENEGAL" instanceName="SN"></ammap:MapArea>
+			<ammap:MapArea title="SERBIA" instanceName="RS"></ammap:MapArea>
+			<ammap:MapArea title="SIERRA LEONE" instanceName="SL"></ammap:MapArea>
+			<ammap:MapArea title="SINGAPORE" instanceName="SG"></ammap:MapArea>
+			<ammap:MapArea title="SLOVAKIA" instanceName="SK"></ammap:MapArea>
+			<ammap:MapArea title="SLOVENIA" instanceName="SI"></ammap:MapArea>
+			<ammap:MapArea title="SOLOMON ISLANDS" instanceName="SB"></ammap:MapArea>
+			<ammap:MapArea title="SOMALIA" instanceName="SO"></ammap:MapArea>
+			<ammap:MapArea title="SOUTH AFRICA" instanceName="ZA"></ammap:MapArea>
+			<ammap:MapArea title="SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS" instanceName="GS"></ammap:MapArea>
+			<ammap:MapArea title="SPAIN" instanceName="ES"></ammap:MapArea>
+			<ammap:MapArea title="SRI LANKA" instanceName="LK"></ammap:MapArea>
+			<ammap:MapArea title="SUDAN" instanceName="SD"></ammap:MapArea>
+			<ammap:MapArea title="SURINAME" instanceName="SR"></ammap:MapArea>
+			<ammap:MapArea title="SVALBARD AND JAN MAYEN" instanceName="SJ"></ammap:MapArea>
+			<ammap:MapArea title="SWAZILAND" instanceName="SZ"></ammap:MapArea>
+			<ammap:MapArea title="SWEDEN" instanceName="SE"></ammap:MapArea>
+			<ammap:MapArea title="SWITZERLAND" instanceName="CH"></ammap:MapArea>
+			<ammap:MapArea title="SYRIAN ARAB REPUBLIC" instanceName="SY"></ammap:MapArea>
+			<ammap:MapArea title="TAIWAN" instanceName="TW"></ammap:MapArea>
+			<ammap:MapArea title="TAJIKISTAN" instanceName="TJ"></ammap:MapArea>
+			<ammap:MapArea title="TANZANIA" instanceName="TZ"></ammap:MapArea>
+			<ammap:MapArea title="THAILAND" instanceName="TH"></ammap:MapArea>
+			<ammap:MapArea title="TIMOR-LESTE" instanceName="TL"></ammap:MapArea>
+			<ammap:MapArea title="TOGO" instanceName="TG"></ammap:MapArea>
+			<ammap:MapArea title="TONGA" instanceName="TO"></ammap:MapArea>
+			<ammap:MapArea title="TRINIDAD AND TOBAGO" instanceName="TT"></ammap:MapArea>
+			<ammap:MapArea title="TUNISIA" instanceName="TN"></ammap:MapArea>
+			<ammap:MapArea title="TURKEY" instanceName="TR"></ammap:MapArea>
+			<ammap:MapArea title="TURKMENISTAN" instanceName="TM"></ammap:MapArea>
+			<ammap:MapArea title="TURKS AND CAICOS ISLANDS" instanceName="TC"></ammap:MapArea>
+			<ammap:MapArea title="UGANDA" instanceName="UG"></ammap:MapArea>
+			<ammap:MapArea title="UKRAINE" instanceName="UA"></ammap:MapArea>
+			<ammap:MapArea title="UNITED ARAB EMIRATES" instanceName="AE"></ammap:MapArea>
+			<ammap:MapArea title="UNITED KINGDOM" instanceName="GB"></ammap:MapArea>
+			<ammap:MapArea title="UNITED STATES" instanceName="US"></ammap:MapArea>
+			<ammap:MapArea title="URUGUAY" instanceName="UY"></ammap:MapArea>
+			<ammap:MapArea title="UZBEKISTAN" instanceName="UZ"></ammap:MapArea>
+			<ammap:MapArea title="VANUATU" instanceName="VU"></ammap:MapArea>
+			<ammap:MapArea title="VENEZUELA" instanceName="VE"></ammap:MapArea>
+			<ammap:MapArea title="VIET NAM" instanceName="VN"></ammap:MapArea>
+			<ammap:MapArea title="VIRGIN ISLANDS, BRITISH" instanceName="VG"></ammap:MapArea>
+			<ammap:MapArea title="VIRGIN ISLANDS, US" instanceName="VI"></ammap:MapArea>
+			<ammap:MapArea title="WESTERN SAHARA" instanceName="EH"></ammap:MapArea>
+			<ammap:MapArea title="YEMEN" instanceName="YE"></ammap:MapArea>
+			<ammap:MapArea title="ZAMBIA" instanceName="ZM"></ammap:MapArea>
+			<ammap:MapArea title="ZIMBABWE" instanceName="ZW"></ammap:MapArea>
+			<ammap:MapArea title="GUERNSEY" instanceName="GG"></ammap:MapArea>
+			<ammap:MapArea title="JERSEY" instanceName="JE"></ammap:MapArea>
+			<ammap:MapArea title="ISLE OF MAN" instanceName="IM"></ammap:MapArea>
+			<ammap:MapArea title="MALDIVES" instanceName="MV"></ammap:MapArea>
+		</fx:Array>
+
+	</fx:Declarations>
+
+
+	<fx:Script>
+		<![CDATA[
+
+			import mx.events.FlexEvent;
+
+
+			[Bindable]
+			public var backgroundAlpha: Number = 1;
+
+			[Bindable]
+			public var currentCountry:String = null;
+
+			[Bindable]
+			public var currentContinent:String = null;
+
+
+			[Bindable]
+			[Embed(source="../maps/world.swf")]
+			private var _world:Class;
+
+			[Bindable]
+			[Embed(source="../maps/continents.swf")]
+			private var _continents:Class;
+
+			[Bindable]
+			[Embed(source="../res/home.png")]
+			private var _homeIcon:Class;
+
+			protected function maparea_europe_clickHandler(event:MouseEvent):void
+			{
+				const instanceName: String = event.target.instanceName;
+				trace("event.target.instanceName " + instanceName);
+
+				if(isCountry(instanceName)){
+					currentCountry = instanceName;
+				} else {
+					currentContinent = instanceName;
+					currentCountry = null;
+				}
+				trace("currentContinent: " + currentContinent + " currentCountry: " + currentCountry);
+				dispatchSelectedAreaChangedEvent();
+			}
+
+			protected function backButton_clickHandler(event:MouseEvent):void
+			{
+				currentCountry = null;
+				currentContinent = null;
+
+				trace("currentContinent: " + currentContinent + " currentCountry: " + currentCountry);
+				dispatchSelectedAreaChangedEvent();
+			}
+
+			private function dispatchSelectedAreaChangedEvent():void{
+				var evt: SelectedMapAreaChangedEvent = new SelectedMapAreaChangedEvent(SelectedMapAreaChangedEvent.SELECTED_AREA_CHANGED);
+				dispatchEvent(evt);
+			}
+
+
+			private function isCountry(instanceName: String):Boolean{
+				//TODO 27.04.2011 hohenbichler:  implement a real check if the instanceName is a continent or a country
+				if(instanceName == "europe"){
+					return false;
+				}
+				return true;
+			}
+
+			protected function dsEurope_clickHandler(event:MouseEvent):void
+			{
+				trace("dsEurope_clickHandler" + event.target);
+			}
+
+			protected function vgroup1_creationCompleteHandler(event:FlexEvent):void
+			{
+				for each (var country:MapArea in countries){
+					country.addEventListener(MouseEvent.CLICK, maparea_europe_clickHandler);
+				}
+			}
+
+		]]>
+	</fx:Script>
+
+
+
+	<!-- Setting the backgroundAlpha to 0 makes the backgound transparent -->
+	<ammap:AmMap id="__amMap" width="100%" height="100%" backgroundAlpha="{backgroundAlpha}" backgroundColor="0x000000" >
+
+		<!-- autoZoom must be set to true if you want to zoom-in area when user clicks on it -->
+		<ammap:areasSettings>
+			<ammap:AreasSettings autoZoom="true"/>
+		</ammap:areasSettings>
+
+		<ammap:zoomControl>
+			<ammap:ZoomControl homeIconColor="#000000"/>
+		</ammap:zoomControl>
+
+		<!-- data sets -->
+		<ammap:dataSets>
+
+			<!-- main data set of continents map-->
+			<ammap:DataSet title="main" id="dsMain" mapClass="{_continents}">
+				<ammap:areas>
+					<!-- every area has url defined, and a different data set is set for each continent -->
+					<!--<AMMAP:MAPAREA INSTANCENAME="AFRICA" URL="{DSAFRICA}" TITLE="AFRICA" COLOR="#723C1A" ZOOMLEVEL="241.559" ZOOMLONG="5.9546" ZOOMLAT="-77.613" PASSZOOMVALUESTOTARGET="TRUE"/>
+					<AMMAP:MAPAREA INSTANCENAME="AUSTRALIA" URL="{DSAUSTRALIA}" TITLE="AUSTRALIA AND OCEANIA" COLOR="#93644A" ZOOMLEVEL="477.113" ZOOMLONG="133.3124" ZOOMLAT="-87.2331" PASSZOOMVALUESTOTARGET="TRUE"/>-->
+					<ammap:MapArea instanceName="europe" url="{dsEurope}" title="Europe" color="#AA805A" zoomLevel="349.924" zoomLong="8.7258" zoomLat="42.3608" passZoomValuesToTarget="true" click="maparea_europe_clickHandler(event)"/>
+					<!--<ammap:MapArea instanceName="asia" url="{dsAsia}" title="Asia" color="#C8AB67" zoomLevel="235.18" zoomLong="98.2628" zoomLat="-34.5275" passZoomValuesToTarget="true"/>
+					<ammap:MapArea instanceName="north_america" url="{dsNorthAmerica}" title="North America" color="#8D725F" zoomLevel="235.18" zoomLong="-111.5557" zoomLat="19.7661" passZoomValuesToTarget="true"/>
+					<ammap:MapArea instanceName="south_america" url="{dsSouthAmerica}" title="South America" color="#BE8045" zoomLevel="241.559" zoomLong="-71.3621" zoomLat="-86.8508" passZoomValuesToTarget="true"/>-->
+				</ammap:areas>
+			</ammap:DataSet>
+
+			<!-- data sets of continents. they are quite the same, only zoomLevel, zoomX and zoomY is different -->
+			<ammap:DataSet title="afrika" id="dsAfrica" mapClass="{_world}" areas="{countries}" movies="{[backButton]}"/>
+			<ammap:DataSet id="dsAustralia" mapClass="{_world}" areas="{countries}" movies="{[backButton]}"/>
+			<ammap:DataSet id="dsEurope" mapClass="{_world}" areas="{countries}" movies="{[backButton]}"/>
+			<ammap:DataSet id="dsAsia" mapClass="{_world}" areas="{countries}" movies="{[backButton]}"/>
+			<ammap:DataSet id="dsNorthAmerica" mapClass="{_world}" areas="{countries}" movies="{[backButton]}"/>
+			<ammap:DataSet id="dsSouthAmerica" mapClass="{_world}" areas="{countries}" movies="{[backButton]}"/>
+		</ammap:dataSets>
+	</ammap:AmMap>
+</s:VGroup >

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<roxx:EditRoutePopup xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+
+			   close="PopUpManager.removePopUp(this);"
+			   xmlns:roxx="roxx.*"
+			   creationComplete="editroutepopup1_creationCompleteHandler(event)"
+			   backgroundColor="0x000000"
+			   >
+
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.air.filesystem.FileUtil;
+			
+			import mx.events.FlexEvent;
+			import mx.events.ValidationResultEvent;
+			import mx.managers.PopUpManager;
+			import mx.utils.ObjectUtil;
+			import mx.validators.ValidationResult;
+			import mx.validators.Validator;
+			
+			import roxx.RoxxUtils;
+
+
+			protected function editroutepopup1_creationCompleteHandler(event:FlexEvent):void
+			{
+				__formGradeTextInput.text = RoxxUtils.getRouteGradeDisplayString(route);
+			}
+			
+			override protected function setValidatorSources():void{
+				gradeValidator.source=__formGradeTextInput;
+				nameValidator.source=__formNameTextInput;
+				countryValidator.source=__formCountryCodeTextInput;
+				regionValidator.source=__formRegionTextInput;
+				sectorValidator.source=__formSectorTextInput;
+				
+				gradeValidator.addEventListener(ValidationResultEvent.INVALID, addToError);
+				nameValidator.addEventListener(ValidationResultEvent.INVALID, addToError);
+				countryValidator.addEventListener(ValidationResultEvent.INVALID, addToError);
+				regionValidator.addEventListener(ValidationResultEvent.INVALID, addToError);
+				sectorValidator.addEventListener(ValidationResultEvent.INVALID, addToError);
+			}
+			
+			override protected function gradeToModel():void{
+				gradeInputToModel(route.grade, __formGradeTextInput.text);
+			}
+
+			
+			override protected function saveOrUpdate():void{
+				popupSaveOrUpdateHandler(route, false);
+			}
+			
+			
+			public function clearError(): void
+			{
+				errorText.text = "";
+			}
+			
+			private function addToError(event:ValidationResultEvent): void
+			{
+				errorText.text += "\n" + event.results[0].errorMessage;
+				trace("addToError triggered." );
+			}
+
+
+			
+		]]>
+	</fx:Script>
+	
+	
+	<!-- note: height - 30 becuase of the title line of the TitleWindow -->
+	<s:VGroup width="{screen.width - 10}" height="{screen.height - 40}" 
+			  left="5" right="5" top="5" bottom="5"
+			  >
+		
+		<s:HGroup id="routeDetailsAndImageBox" width="100%" >
+			
+			<s:VGroup width="100%" height="100%">
+				
+				<s:Form width="100%" height="100%">
+					<s:FormItem label="Name:" width="100%">
+						<!-- MARKER-02002: Bidirectional databinding -->
+						<s:TextInput id="__formNameTextInput" text="@{route.name}" width="100%"/>
+					</s:FormItem>
+					<s:FormItem label="Grade:" width="100%">
+						<s:TextInput id="__formGradeTextInput" text="" width="100%"/>
+					</s:FormItem>
+					<s:FormItem label="Country:" width="100%">
+						<s:TextInput id="__formCountryCodeTextInput" text="@{route.country}" width="100%"/>
+					</s:FormItem>
+					<s:FormItem label="Region:" width="100%">
+						<s:TextInput id="__formRegionTextInput" text="@{route.region}" width="100%"/>
+					</s:FormItem>
+					<s:FormItem label="Sector:" width="100%">
+						<s:TextInput id="__formSectorTextInput" text="@{route.sector}" width="100%"/>
+					</s:FormItem>
+				</s:Form>
+				
+			</s:VGroup>
+			
+		</s:HGroup>
+		
+		
+		<s:TextArea id="errorText" color="0xFF0000" text="" lineBreak="toFit" editable="false" visible="{errorText.text != '' ? true : false}"/>
+		
+		<s:HGroup height="100%" verticalAlign="bottom">
+			<s:Button id="saveButton" label="Save" click="clearError();saveButton_clickHandler(event)"/>
+			<s:Button label="Abort" click="PopUpManager.removePopUp(this);"/>
+		</s:HGroup>
+		
+		
+	</s:VGroup>
+
+
+</roxx:EditRoutePopup>

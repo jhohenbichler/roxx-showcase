@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		title=""
+		xmlns:roxx="roxx.*"
+		viewActivate="view1_viewActivateHandler(event)"
+		actionBarVisible="true"
+		tabBarVisible="true"
+		>
+	
+	<fx:Declarations>
+		
+		<roxx:RoxxHTTPDataSource id="roxxHTTPDataSource"
+								 host="{MobileConfiguration.host}" port="{MobileConfiguration.port}"
+								 loadImageHandler="loadImageHandler"
+								 lastSavedOrUpdatedRouteIdChangedHandler="lastSavedOrUpdatedRouteIdChangedHandler"
+								 routesLoadedHandler="routesLoadedHandler"/>
+		
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.images.JPGEncoder;
+			
+			import mx.collections.ArrayList;
+			import mx.core.BitmapAsset;
+			import mx.core.IFlexDisplayObject;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			import roxx.ConfirmDeletePopup;
+			import roxx.CreateAndEditRoutePopUp;
+			import roxx.RoxxUtils;
+			import roxx.UIUtils;
+			
+			import spark.components.gridClasses.GridColumn;
+			import spark.events.GridSelectionEvent;
+			import spark.events.ViewNavigatorEvent;
+			import spark.filters.ColorMatrixFilter;
+			import spark.primitives.BitmapImage;
+			
+			
+			[Embed (source="../res/noImage.png" )]
+			public var IMAGE_NO_IMAGE: Class;
+			
+			[Embed (source="../res/loading.png" )]
+			public var IMAGE_LOADING: Class;
+			
+			
+			
+			[Bindable]
+			private var selectedRouteText:Object;
+			
+			[Bindable]
+			private var currentRouteImage:Bitmap;
+			
+			protected var myCam:CameraUI;
+			private var imageFile:File;
+			
+			
+			public function lastSavedOrUpdatedRouteIdChangedHandler(id:String):void{
+				trace("lastSavedOrUpdatedRouteIdChangedHandler: " + id);
+				//reload the newly saved image
+				roxxHTTPDataSource.loadRouteImage(id);
+				resetImageView();
+			}
+			
+			
+			public function loadImageHandler(image:Bitmap):void{
+				currentRouteImage = image;
+			}
+			
+			public function routesLoadedHandler(routes: Array):void{
+				//not used here
+			}
+			
+			protected function view1_viewActivateHandler(event:ViewNavigatorEvent):void
+			{
+				trace("view1_viewActivateHandler");
+				
+				view1_viewActivateHandler__Cam(event);
+				selectedRouteChanged();
+			}
+			
+			private function selectedRouteChanged():void{
+				
+				currentRouteImage = new IMAGE_LOADING() as BitmapAsset;
+				
+				if(data == null){
+					data = Main.instance.selectedRoute;
+				}
+				
+				selectedRouteText = data.name + "(" + RoxxUtils.getRouteGradeDisplayString(data) + ")" + "  " + data.country + " / " + data.region + " / " + data.sector;
+				
+				if(data.hasImage){
+					roxxHTTPDataSource.loadRouteImage(data.id);
+				} else {
+					currentRouteImage = new IMAGE_NO_IMAGE() as BitmapAsset;
+				}
+				
+			}
+			
+			protected function view1_viewActivateHandler__Cam(event:ViewNavigatorEvent):void
+			{
+				if (CameraUI.isSupported){
+					currentState = "normal";
+					myCam = new CameraUI();
+					myCam.addEventListener(MediaEvent.COMPLETE, onComplete);
+				}
+				else currentState = "unsupported";
+			}
+			
+			protected function btnCamera_clickHandler(event:MouseEvent):void
+			{
+				img.filters = [];
+				myCam.launch(MediaType.IMAGE);
+				btnSaveImage.visible = true;
+			}
+			
+			protected function onComplete(evt:MediaEvent):void
+			{
+				img.source = evt.data.file.url;
+				imageFile = evt.data.file;
+				
+				grpCurrentImage.visible = false;
+				grpNewImage.visible = true;
+			}
+			
+			protected function btnSaveImage_clickHandler(event:MouseEvent):void
+			{
+				roxxHTTPDataSource.saveOrUpdateRouteWithImage(data, imageFile);
+			}
+			
+			protected function btnDelete_clickHandler(event:MouseEvent):void
+			{
+				var popup:ConfirmDeletePopup = new ConfirmDeletePopup();
+				popup.addEventListener(CloseEvent.CLOSE, 
+					function():void{
+						if(popup.questionConfirmed){
+							Main.instance.routes.removeItem(data);
+							roxxHTTPDataSource.remove(data);
+							navigator.popToFirstView();
+						}
+					}
+				);
+				popup.data = data.name;
+				popup.open(this, true);
+			}
+			
+			
+			
+			
+			protected function btnEdit_clickHandler(event:MouseEvent):void
+			{
+				MobileUiUtils.openCreateAndEditPopup(this, data, false);
+			}
+			
+			protected function btnNext_clickHandler(event:MouseEvent):void
+			{
+				var index:int = RoxxUtils.findIndexOfRouteInListById(Main.instance.routes_selectionSubset, data.id);
+				if(Main.instance.routes_selectionSubset.length > index + 1){
+					data = Main.instance.routes_selectionSubset.getItemAt(index + 1);
+					Main.instance.selectedRoute = data;
+					selectedRouteChanged();
+					lblInfo.text = "";
+					lblInfo.visible = false;
+					resetImageView();
+				} else {
+					lblInfo.text = "Last route reached - no more routes available";
+					lblInfo.visible = true;
+				}
+			}
+			
+			protected function btnPrev_clickHandler(event:MouseEvent):void
+			{
+				var index:int = RoxxUtils.findIndexOfRouteInListById(Main.instance.routes_selectionSubset, data.id);
+				if(index >= 1){
+					data = Main.instance.routes_selectionSubset.getItemAt(index - 1);
+					Main.instance.selectedRoute = data;
+					selectedRouteChanged();
+					lblInfo.text = "";
+					lblInfo.visible = false;
+					resetImageView();
+				} else {
+					lblInfo.text = "First route reached - no more routes available";
+					lblInfo.visible = true;
+				}
+				
+			}
+			
+			private function resetImageView():void{
+				grpNewImage.visible = false;
+				grpCurrentImage.visible = true;
+				btnSaveImage.visible = false;
+			}
+			
+			protected function btnHome_clickHandler(event:MouseEvent):void
+			{
+				navigator.popToFirstView();				
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="unsupported"/>
+	</s:states>
+	
+	<s:VGroup width="{screen.width}" height="{screen.height}">
+		
+		<s:Scroller width="100%" height="100%" verticalScrollPolicy="on" horizontalScrollPolicy="on">
+			
+			<s:Group width="100%" height="100%">
+				
+				<s:Rect width="100%" height="100%">
+					<s:fill>
+						<s:SolidColor color="0xCCCCCC"/>
+					</s:fill>		
+				</s:Rect>
+				
+				<s:VGroup width="100%" height="100%" verticalAlign="top" paddingLeft="5" paddingRight="5" paddingTop="5" paddingBottom="5">
+					
+					<s:Label id="lblInfo" color="red" />
+					
+					<s:Label id="lblSelectedRoute" text="{selectedRouteText}" />
+					
+					<s:VGroup id="imgGroup" width="100%" height="100%">
+						
+						<s:Label text="This device does not support CameraUI." width="95%" includeIn="unsupported"/>
+						
+						<s:HGroup includeIn="normal">
+							<s:Button id="btnCamera" click="btnCamera_clickHandler(event)" label="Camera"/>
+							<s:Button id="btnSaveImage" click="btnSaveImage_clickHandler(event)" label="Save image" visible="false" />
+						</s:HGroup>
+						
+						<s:VGroup width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
+							
+							<s:Group id="grpImages" width="100%" height="150">
+								
+								<s:VGroup id="grpNewImage" width="100%" height="150" accentColor="0xFF0000" visible="false" horizontalAlign="center">
+									<s:Label text="New Image: " />
+									<s:Image id="img" width="100%" height="100%" includeIn="normal"/>    
+								</s:VGroup>
+								
+								<s:VGroup id="grpCurrentImage" width="100%" height="150" visible="true">
+									<s:Image id="imgRouteImage" source="{currentRouteImage}"
+											 width="100%"
+											 height="100%"
+											 />
+								</s:VGroup>
+								
+							</s:Group>
+							
+						</s:VGroup>
+					</s:VGroup>
+					
+				</s:VGroup>
+				
+			</s:Group>
+			
+		</s:Scroller>
+		
+	</s:VGroup>
+	
+	<s:navigationContent>
+		<s:Button id="btnHome" click="btnHome_clickHandler(event)"
+				  icon="@Embed('/res/small/house.png')"
+				  />
+		<s:Button id="btnPrev" click="btnPrev_clickHandler(event)"
+				  icon="@Embed('/res/small/arrowleft.png')"
+				  />
+		<s:Button id="btnNext" click="btnNext_clickHandler(event)"
+				  icon="@Embed('/res/small/arrowright.png')"
+				  />
+	</s:navigationContent>
+	
+	<s:actionContent>
+		<s:Button id="btnDelete" icon="@Embed('/res/small/delete.png')" click="btnDelete_clickHandler(event)"  />
+		<s:Button id="btnEdit" icon="@Embed('/res/small/pencilangled.png')" click="btnEdit_clickHandler(event)"   />
+	</s:actionContent>
+	
+</s:View>

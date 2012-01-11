@@ -1,0 +1,25 @@
+<configuration>
+
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%level %date %logger{10} %msg%n</pattern>
+    </encoder>
+  </appender>
+  <appender name="file" class="ch.qos.logback.core.FileAppender">
+    <file>roxx.log</file>
+    <encoder>
+      <pattern>%level %date [%thread] %logger %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="com.weiglewilczek.roxx" level="debug" additivity="false">
+    <appender-ref ref="console" />
+    <appender-ref ref="file" />
+  </logger>
+
+  <root level="warn">
+    <appender-ref ref="console"/>
+    <appender-ref ref="file"/>
+  </root>
+
+</configuration>

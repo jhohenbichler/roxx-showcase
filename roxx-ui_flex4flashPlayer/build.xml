@@ -1,0 +1,48 @@
+<project name="client" default="build">
+
+	<property name="FLEX_HOME" value="/Applications/Adobe Flash Builder 4.5/sdks/4.5.1" />
+	<property name="DEPLOY_DIR" value="ant-build" />
+ 	<property name="SRC_DIR" value="${basedir}/src"/>
+ 	<property name="LIB_DIR" value="${basedir}/libs"/>
+
+	<taskdef resource="flexTasks.tasks" classpath="${FLEX_HOME}/ant/lib/flexTasks.jar" />
+
+	<target name="clean">
+		<delete dir="build/" />
+	</target>
+
+	<target name="build" depends="clean">
+		<echo message="FLEX_HOME: ${FLEX_HOME}" />
+		
+		<copy file="${basedir}/../roxx-ui_shared/ant-build/roxx-ui-shared.swc" tofile="${basedir}/libs/roxx-ui-shared.swc" />
+
+		<mxmlc file="${SRC_DIR}/roxx/Main.mxml"
+			output="${DEPLOY_DIR}/Main.swf"
+			keep-generated-actionscript="false"
+			actionscript-file-encoding="UTF-8"
+			debug="false"
+			incremental="false"
+			allow-source-path-overlap="true"
+			show-binding-warnings="true"
+			show-actionscript-warnings="true"
+			strict="true"
+			warnings="true"
+			use-network="true"
+			>
+            <load-config filename="${FLEX_HOME}/frameworks/flex-config.xml"/>
+			<library-path dir="${LIB_DIR}/" append="true">
+				<include name="*.swc" />
+			</library-path>
+			<source-path path-element="${SRC_DIR}" />
+		</mxmlc>
+
+        <html-wrapper title="ROXX" file="index.html"
+            application="app" swf="roxx"
+			width="1005" height="630"
+			bgcolor="#000000"
+            output="${DEPLOY_DIR}" />
+
+	</target>
+	
+
+</project>

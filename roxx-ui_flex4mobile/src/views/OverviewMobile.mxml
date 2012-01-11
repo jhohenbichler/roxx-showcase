@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		title="roxx"
+		xmlns:roxx="roxx.*"
+		creationComplete="view1_creationCompleteHandler(event)"
+		viewActivate="view1_viewActivateHandler(event)"
+		actionBarVisible="true"
+		tabBarVisible="true"
+		width="{screen.width}"
+		height="{screen.height}"
+		currentState="overview"
+		>
+	
+	<fx:Declarations>
+		<roxx:SelectListPopup id="countriesSelectListPopup" dataProvider="{countries_completeList}" close="countriesSelectListPopup_closeHandler(event)" width="100%" height="100%"/>
+		<roxx:SelectListPopup id="regionsSelectListPopup" dataProvider="{regionsForSelection}" close="regionsSelectListPopup_closeHandler(event)"  width="100%" height="100%"/>
+		<roxx:SelectListPopup id="sectorsSelectListPopup" dataProvider="{sectorsForSelection}" close="sectorsSelectListPopup_closeHandler(event)"  width="100%" height="100%"/>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.images.JPGEncoder;
+			import com.adobe.utils.DictionaryUtil;
+			
+			import flash.sampler.getSetterInvocationCount;
+			import flash.utils.flash_proxy;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.ArrayList;
+			import mx.collections.IList;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			import roxx.CreateAndEditRoutePopUp;
+			import roxx.RoxxUtils;
+			
+			import spark.components.gridClasses.GridColumn;
+			import spark.events.DropDownEvent;
+			import spark.events.GridSelectionEvent;
+			import spark.events.IndexChangeEvent;
+			import spark.events.PopUpEvent;
+			import spark.events.ViewNavigatorEvent;
+			import spark.filters.ColorMatrixFilter;
+			import spark.primitives.BitmapImage;
+			
+			
+			private function get routes_completeList(): ArrayList{
+				return Main.instance.routes;
+			}
+			
+			[Bindable]
+			private function get routes_selectionSubset(): ArrayList{
+				return Main.instance.routes_selectionSubset;
+			}
+			private function set routes_selectionSubset(value: ArrayList): void{
+				Main.instance.routes_selectionSubset = value;
+			}
+			
+			
+			
+			public function lastSavedOrUpdatedRouteIdChangedHandler(id:String):void{
+				trace(id);
+			}
+			
+			protected function view1_viewActivateHandler(event:ViewNavigatorEvent):void
+			{
+				var sr:Object = Main.instance.selectedRoute;
+				if(sr != null && sr.name != null){
+					var r:Object = RoxxUtils.findRouteInListById(routes_selectionSubset, sr.id);
+					var index:int = routes_selectionSubset.getItemIndex(r);
+					
+					routesDisplayList.selectedItem = r;
+					routesDisplayList.ensureIndexIsVisible(index);
+				}
+			}
+			
+			private function get selectedRoute():Object{
+				return routes_selectionSubset.getItemAt(routesDisplayList.selectedIndex);
+			}
+			
+			protected function routesDisplayList_changeHandler(event:IndexChangeEvent):void
+			{
+				Main.instance.selectedRoute = routesDisplayList.selectedItem; 
+				navigator.pushView(Details, routesDisplayList.selectedItem);
+			}
+			
+			protected function view1_creationCompleteHandler(event:FlexEvent):void
+			{
+				routes_selectionSubset = Main.instance.routes;				
+				generateDataProvidersForSelections(true, true);
+			}
+			
+			public static const CONST_ALL: String = "All";
+			
+			// TODO: single-source the following: --- better first move the code to the server where it should really be!
+			
+			
+			[Bindable]
+			public var selectedCountry: String = CONST_ALL;
+			
+			
+			[Bindable]
+			public var routesForSelectedArea: Array = null;
+			
+			[Bindable]
+			public var countries_completeList: ArrayCollection = null;
+			
+			[Bindable]
+			public var regionsForSelection: ArrayCollection = null;
+			
+			[Bindable]
+			public var sectorsForSelection: ArrayCollection = null;
+
+			[Bindable]
+			private var selectedRegion:*;
+			
+			[Bindable]
+			private var selectedSector:*;
+			
+
+			private function generateDataProvidersForSelections(countryChanged:Boolean, regionChanged:Boolean):void{
+				generateCountriesList();
+				generateRegionsAndSektorsForSelection(countryChanged, regionChanged);
+				generateRoutesForSelection();
+			}
+			
+			private function generateCountriesList():void{
+				countries_completeList = new ArrayCollection();
+				countries_completeList.addItem(CONST_ALL);
+				var dict:Dictionary = new Dictionary();
+				for each(var e:* in routes_completeList.toArray()){
+					dict[e.country] = e.country;
+				}
+				countries_completeList.addAll(new ArrayList(DictionaryUtil.getValues(dict)));
+			}
+			
+			
+			private function generateRegionsAndSektorsForSelection(countryChanged:Boolean, regionChanged: Boolean):void{
+				
+				if(countryChanged){
+					regionsForSelection = new ArrayCollection();
+				}
+				sectorsForSelection = new ArrayCollection();
+				
+				// Note: In Java we would just use a Set, but flash does not provide such a thing
+				const regions:Dictionary = new Dictionary;
+				const sectors:Dictionary = new Dictionary;
+				
+				for each (var route:Object in routes_completeList.toArray()){
+					if(selectedCountry == CONST_ALL || route.country == selectedCountry ){
+						if(countryChanged){
+							regions[route.region] = route.region;
+						}
+						if(selectedRegion == CONST_ALL || selectedRegion == route.region){
+							sectors[route.sector] = route.sector;
+						}
+					}
+				}
+				
+				if(countryChanged){
+					regionsForSelection.addItem(CONST_ALL);
+					for (var r:String in regions){
+						trace("found region: " + r);
+						regionsForSelection.addItem(r);
+					}
+				}
+				
+				sectorsForSelection.addItem(CONST_ALL);
+				for (var s:String in sectors){
+					trace("found sector: " + s);
+					sectorsForSelection.addItem(s);
+				}
+				
+				if(countryChanged){
+					selectedRegion = CONST_ALL;
+				}
+				if(regionChanged){
+					selectedSector = CONST_ALL;
+				}
+			}
+			
+			private function generateRoutesForSelection():void{
+				
+				const country: String = selectedCountry;
+				if(country == null){
+					return;
+				} else {
+					
+					//MARKER-01002: Array.filter
+					const arr:Array = routes_completeList.toArray().filter(
+						function(item:*, index:int, array:Array):Boolean {
+							return (selectedCountry == CONST_ALL || item.country == country) &&
+							(selectedRegion == CONST_ALL || selectedRegion == item.region) &&
+							(selectedRegion == CONST_ALL || selectedSector == CONST_ALL || selectedSector == item.sector)
+						} 
+					);
+					
+					//			const arr:Array = new Array();
+					//          for each (var route:Object in completeRoutesList){
+					//            if(route.country == country &&
+					//              (selectedRegion == CONST_ALL || selectedRegion == route.region) &&
+					//              (selectedRegion == CONST_ALL || selectedSector == CONST_ALL || __cmb_sector.selectedItem == route.sector) ){
+					//              arr.push(route);
+					//            }
+					//          }
+					//        }
+				}
+				
+				
+				
+				// Note: We must set the dataprovider at the end after all relevant data has been collected
+				// otherwise we would get a change notification for an empty array. And for an empty array we could not set a selection...
+				routesForSelectedArea = arr;
+				
+				routes_selectionSubset = new ArrayList(routesForSelectedArea);
+			}
+			
+			
+			
+			
+			protected function countriesSelectListPopup_closeHandler(event:PopUpEvent):void
+			{
+				var selectedItems:Vector.<Object> = event.data;
+				//note: no multiple selections
+				if(selectedItems.length == 1){
+					selectedCountry = selectedItems.pop();
+				}
+				generateDataProvidersForSelections(true, true);
+			}
+			
+			protected function regionsSelectListPopup_closeHandler(event:PopUpEvent):void
+			{
+				var selectedItems:Vector.<Object> = event.data;
+				//note: no multiple selections
+				if(selectedItems.length == 1){
+					selectedRegion = selectedItems.pop();
+				}
+				generateDataProvidersForSelections(false, true);
+			}
+			
+			protected function sectorsSelectListPopup_closeHandler(event:PopUpEvent):void
+			{
+				var selectedItems:Vector.<Object> = event.data;
+				//note: no multiple selections
+				if(selectedItems.length == 1){
+					selectedSector = selectedItems.pop();
+				}
+				generateDataProvidersForSelections(false, false);
+			}
+			
+			protected function btnAdd_clickHandler(event:MouseEvent):void
+			{
+				MobileUiUtils.openCreateAndEditPopup(this, data, true);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	<s:states>
+		<s:State name="filter" />
+		<s:State name="overview" />
+	</s:states>
+	
+	<s:Group  width="100%" height="100%" >
+		
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:SolidColor color="0xCCCCCC"/>
+			</s:fill>		
+		</s:Rect>
+		
+		<s:VGroup width="100%" height="100%" paddingTop="5">
+			
+			
+			<s:HGroup id="grpFilterBtn" width="100%" paddingLeft="10" paddingRight="10">
+				<s:HGroup visible.overview="true" visible.filter="false" 
+						  includeInLayout.filter="false" includeInLayout.overview="true"
+						  click="currentState='filter'"
+						  width="100%" height="100%"
+						  >
+					<s:Button label="({Main.instance.routes_selectionSubset.length}) Filter: {selectedCountry} / {selectedRegion} / {selectedSector}" 
+							  width="100%" height="100%"/>
+				</s:HGroup>
+				<s:HGroup visible.overview="false" visible.filter="true" 
+						  includeInLayout.filter="true" includeInLayout.overview="false"
+						  width="100%" height="100%"
+						  >
+					<s:Button label="({Main.instance.routes_selectionSubset.length}) Close Fitler" click="currentState='overview'"
+							  width="100%" height="100%"/>
+				</s:HGroup>
+			</s:HGroup>
+			
+			
+			<s:VGroup id="grpFilterSelection" width="100%"  
+					  visible.filter="true" visible.overview="false" 
+					  includeInLayout.filter="true" includeInLayout.overview="false"
+					  >
+				
+				<s:VGroup width="100%" paddingLeft="10" visible.filter="true" visible.overview="false">
+					<s:HGroup width="100%" verticalAlign="middle">
+						<s:Label text="Filter Countries:" width="120" />
+						<s:Button width="100" label="{selectedCountry}" click="countriesSelectListPopup.open(this, false)" />
+					</s:HGroup>
+					<s:HGroup width="100%" verticalAlign="middle">
+						<s:Label text="Filter Regions:" width="120" />
+						<s:Button width="100" label="{selectedRegion}" click="regionsSelectListPopup.open(this, false)" />
+					</s:HGroup>
+					<s:HGroup width="100%" verticalAlign="middle">
+						<s:Label text="Filter Sectors" width="120"  />
+						<s:Button width="100" label="{selectedSector}" click="sectorsSelectListPopup.open(this, false)"/>
+					</s:HGroup>
+				</s:VGroup>
+				
+			</s:VGroup>
+			
+			
+			
+			<s:Group
+				width="100%"
+				height="100%">
+				
+				<s:Rect width="100%" height="5">
+					<s:fill>
+						<s:SolidColor color="0x444444"/>
+					</s:fill>
+				</s:Rect>
+				
+				
+				<s:VGroup width="100%" height="100%"
+						  gap="10" paddingBottom="0" paddingTop="5" horizontalAlign="center" >
+					
+					<s:List id="routesDisplayList"
+							dataProvider="{routes_selectionSubset}" 
+							change="routesDisplayList_changeHandler(event)"
+							width="100%"
+							height="100%"
+							>
+						<s:itemRenderer>
+							<fx:Component>
+								<s:IconItemRenderer labelFunction="lblFunction" 
+													messageFunction="msgFunction" 
+													iconFunction="icoFunction" 
+													decorator="{details}"
+													width="100%" 
+													alternatingItemColors="{[0xAAAAAA, 0xCCCCCC]}"
+													>
+									<fx:Script>
+										<![CDATA[
+											import roxx.RoxxUtils;
+											
+											import spark.components.Image;
+											
+											[Bindable]
+											[Embed(source="../res/small/photos.png")]
+											public var imageAvailableIcon:Class;
+											
+											[Bindable]
+											[Embed(source="../res/small/camera.png")]
+											public var imageNotAvailableIcon:Class;
+											
+											[Bindable]
+											[Embed(source="../res/small/play.png")]
+											public var details:Class;
+											
+											
+											private function gradeLabelFunction(item:Object):String{
+												return RoxxUtils.getRouteGradeDisplayString(item);
+											}
+											
+											// note: the function cannot be named labelFunction because a property with that name is already defined in IconItemRenderer
+											private function lblFunction(item:Object):String{
+												var ret:String = item.name + " (" + gradeLabelFunction(item)  + ")";
+												return ret;
+											}
+											
+											private function msgFunction(item:Object):String{
+												var ret:String = item.country + " / " + item.region + " / " + item.sector;
+												return ret;
+											}
+											
+											private function icoFunction(item:Object):Object{
+												if(item.hasImage == true){
+													return imageAvailableIcon;
+												} else {
+													return imageNotAvailableIcon;
+												}
+											}
+										]]>
+									</fx:Script>
+								</s:IconItemRenderer>
+							</fx:Component>
+						</s:itemRenderer>
+					</s:List>
+					
+				</s:VGroup>
+				
+				
+			</s:Group>
+			
+		</s:VGroup>
+		
+		
+		<s:BusyIndicator 
+			x="{(screen.width - 40) / 2}"
+			y="{(screen.height - 40) / 2}" 
+			width="40"
+			height="40"
+			visible="{Main.instance.roxxHTTPDataSource.workInProgress}" 
+			/>
+		
+		<s:Rect width="100%" height="100%"
+				visible="{Main.instance.roxxHTTPDataSource.workInProgress}" 
+				>
+			<s:fill>
+				<s:SolidColor color="0x0000000" alpha="0.3"/>
+			</s:fill>
+		</s:Rect>
+		
+	</s:Group>
+	
+	
+	<s:actionContent>
+		<s:Button id="btnReload"
+				  click="{Main.instance.roxxHTTPDataSource.loadRoxxRoutes()}"   
+				  icon="@Embed('/res/small/reload.png')"
+				  />
+		<s:Button id="btnAdd" 
+				  click="btnAdd_clickHandler(event)"
+				  icon="@Embed('/res/small/plus.png')"
+				  />
+	</s:actionContent>
+	
+</s:View>

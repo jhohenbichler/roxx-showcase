@@ -1,0 +1,30 @@
+<project name="roxx-ui_shared" default="build">
+
+	<property name="FLEX_HOME" value="/Applications/Adobe Flash Builder 4.5/sdks/4.5.1" />
+
+	<taskdef resource="flexTasks.tasks" classpath="${FLEX_HOME}/ant/lib/flexTasks.jar" />
+
+
+	<property name="builddir" value="ant-build"></property>
+	<property name="srcdir" value="src"></property>
+	<property name="buildartefact.name" value="roxx-ui-shared.swc"></property>
+
+	  <target name="compile">
+	    <compc output="${builddir}/${buildartefact.name}" fork="yes">
+	      <source-path path-element="${srcdir}" />
+	      <include-sources dir="${srcdir}" includes="*"/>	
+	      <external-library-path file="${basedir}/libs/" append="true"/>
+	    </compc>
+	  </target>
+	 
+	  <target name="clean">
+	    	<delete dir="${builddir}" failonerror="true"/>
+	  </target>
+
+	<target name="prepare">
+		<mkdir dir="${builddir}"/>
+	</target>
+	 
+    <target name="build" depends="clean, prepare, compile" />
+
+</project>

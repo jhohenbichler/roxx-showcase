@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<roxx:EditRoutePopup xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+
+			   x="168" y="86"
+			   width="750" height="350"
+
+			   close="PopUpManager.removePopUp(this);"
+			   borderAlpha="0.75" xmlns:roxx="roxx.*"
+			   creationComplete="editroutepopup1_creationCompleteHandler(event)"
+			   backgroundColor="0x000000"
+			   >
+
+
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.air.filesystem.FileUtil;
+
+			import mx.events.FlexEvent;
+			import mx.events.ValidationResultEvent;
+			import mx.managers.PopUpManager;
+			import mx.utils.ObjectUtil;
+			import mx.validators.ValidationResult;
+			import mx.validators.Validator;
+
+			import roxx.RoxxUtils;
+
+
+			public var editModel:EditModel;
+			[Bindable]
+			private var localRouteImage:Bitmap = null;
+
+			override protected function setValidatorSources():void{
+				gradeValidator.source=__formGradeTextInput;
+				nameValidator.source=__formNameTextInput;
+				countryValidator.source=__formCountryCodeTextInput;
+				regionValidator.source=__formRegionTextInput;
+				sectorValidator.source=__formSectorTextInput;
+				
+			}
+			
+			override protected function gradeToModel():void{
+				gradeInputToModel(route.grade, __formGradeTextInput.text);
+			}
+
+			protected override function saveOrUpdate():void{
+				var doNotChangeImage:Boolean = false;
+
+				// If the image was not changed.
+				if(editModel.fileReference == null && localRouteImage != null){
+					// What we see here is a somehow bad workaround because we must send
+					// the post-request  with the route data and the image itself at once.
+					// Also see RoxxHTTPDataSource.saveRouteWithImage
+					// Note: File.createTempFile() is only available in AIR
+
+					doNotChangeImage = true;
+				}
+
+				editModel.routeImage = localRouteImage;
+				popupSaveOrUpdateHandler(route, doNotChangeImage);
+			}
+
+
+			public function selectImageButton_clickHandler(event:MouseEvent):void
+			{
+
+				function onCancel(evt:Event):void
+				{
+					trace("The browse request was canceled by the user.");
+				}
+
+				function onLoadBytesComplete(evt:Event):void{
+					const loader:Loader = evt.currentTarget.loader
+					trace("loaded image with width: " + loader.content.width + " height: " + loader.content.height);
+					const bitmap:Bitmap = loader.content as Bitmap;
+					trace("loaded bitmap with width: " + bitmap.width + " height: " + bitmap.height);
+					localRouteImage = bitmap
+				}
+
+				function onLoadComplete(evt:Event):void
+				{
+					trace("The image loading is complete.");
+					previewLabel.visible = true;
+					const loader:Loader = new Loader();
+					loader.contentLoaderInfo.addEventListener(Event.COMPLETE, onLoadBytesComplete);
+					loader.loadBytes(editModel.fileReference.data);
+				}
+
+				function onSelect(evt:Event):void
+				{
+					trace("The user has selected a file.");
+					editModel.fileReference.addEventListener(Event.COMPLETE, onLoadComplete);
+					editModel.fileReference.load();
+				}
+
+				function onIOError(evt:IOErrorEvent):void
+				{
+					trace("There was an IO Error.");
+				}
+
+				function onSecurityError(evt:Event):void
+				{
+					trace("There was a security error.");
+				}
+
+				editModel.fileReference = new FileReference();
+				editModel.fileReference.addEventListener(Event.SELECT, onSelect);
+				editModel.fileReference.addEventListener(Event.CANCEL, onCancel);
+				editModel.fileReference.addEventListener(IOErrorEvent.IO_ERROR, onIOError);
+				editModel.fileReference.addEventListener(SecurityErrorEvent.SECURITY_ERROR, onSecurityError);
+				var textTypeFilter:FileFilter = new FileFilter("Images (*.jpg, *.jpeg, *.gif, *.png)", "*.jpg; *.jpeg; *.gif; *.png");
+				editModel.fileReference.browse([textTypeFilter]);
+			}
+
+
+			protected function deleteImageButton_clickHandler(event:MouseEvent):void
+			{
+				localRouteImage = null;
+				editModel.fileReference = null;
+			}
+
+			protected function editroutepopup1_creationCompleteHandler(event:FlexEvent):void
+			{
+				__formGradeTextInput.text = RoxxUtils.getRouteGradeDisplayString(route);
+			}
+			
+		]]>
+	</fx:Script>
+
+
+	<s:VGroup width="100%" height="100%" left="10" right="10" top="10" bottom="10" >
+
+		<mx:HBox id="routeDetailsAndImageBox" width="100%">
+
+			<mx:VBox>
+
+				<mx:Form width="100%" id="routeDetailsForm">
+					<mx:FormItem label="Name:">
+						<mx:TextInput id="__formNameTextInput" text="@{route.name}"/>
+					</mx:FormItem>
+					<mx:FormItem label="Grade:">
+						<mx:TextInput id="__formGradeTextInput" text=""/>
+					</mx:FormItem>
+					<mx:FormItem label="Country-code:">
+						<mx:TextInput id="__formCountryCodeTextInput" text="@{route.country}"/>
+					</mx:FormItem>
+					<mx:FormItem label="Region:">
+						<mx:TextInput id="__formRegionTextInput" text="@{route.region}"/>
+					</mx:FormItem>
+					<mx:FormItem label="Sector:">
+						<mx:TextInput id="__formSectorTextInput" text="@{route.sector}"/>
+					</mx:FormItem>
+				</mx:Form>
+
+				<mx:HBox id="imageBox">
+					<mx:Button id="deleteImageButton" icon="@Embed('../../res/cross.png')" label="Remove image" click="deleteImageButton_clickHandler(event)"/>
+					<mx:Button id="selectImageButton" icon="@Embed('../../res/images.png')" label="Select image" click="selectImageButton_clickHandler(event)"/>
+				</mx:HBox>
+
+			</mx:VBox>
+
+			<mx:VBox width="100%" horizontalAlign="center">
+				<mx:Label id="previewLabel" text="Image-Preview" visible="false" width="100%" fontWeight="bold" fontSize="14"/>
+				<s:HGroup >
+					<mx:Image source="{localRouteImage}" maxHeight="230" maxWidth="400"/>
+				</s:HGroup>
+			</mx:VBox>
+
+		</mx:HBox>
+
+
+		<mx:HBox>
+			<mx:Button id="saveButton" label="Save" click="saveButton_clickHandler(event)"/>
+			<!--<mx:Button id="saveAsNewButton" label="Save as New" click="saveAsNewButton_clickHandler(event)"/>-->
+			<mx:Button label="Abort" click="PopUpManager.removePopUp(this);"/>
+		</mx:HBox>
+
+
+	</s:VGroup>
+
+
+</roxx:EditRoutePopup>

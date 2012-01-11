@@ -1,0 +1,653 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+     xmlns:s="library://ns.adobe.com/flex/spark"
+     xmlns:mx="library://ns.adobe.com/flex/mx"
+     xmlns:roxx="roxx.*"
+
+     creationComplete="application1_creationCompleteHandler(event)"
+
+     width="100%"
+     height="100%"
+     left="5" right="5" top="5" bottom="5"
+     currentState="world"
+     >
+
+  <fx:Declarations>
+
+    <roxx:RoxxHTTPDataSource id="roxxHTTPDataSource"
+							 host="localhost" port="8080"
+                 loadImageHandler="loadImageHandler"
+                 lastSavedOrUpdatedRouteIdChangedHandler="lastSavedOrUpdatedRouteIdChangedHandler"
+                 routesLoadedHandler="routesLoadedHandler"/>
+
+    <mx:SeriesInterpolate
+      id="rearrangeData"
+      duration="1000"
+      minimumElementDuration="400"
+      elementOffset="0"
+      />
+
+  </fx:Declarations>
+
+
+
+
+
+  <fx:Script>
+    <![CDATA[
+		import com.adobe.serialization.json.JSON;
+		import com.ammap.events.MapEvent;
+		
+		import mx.collections.ArrayCollection;
+		import mx.controls.Alert;
+		import mx.core.BitmapAsset;
+		import mx.events.CloseEvent;
+		import mx.events.CollectionEvent;
+		import mx.events.FlexEvent;
+		import mx.events.ListEvent;
+		import mx.managers.CursorManager;
+		import mx.managers.PopUpManager;
+		import mx.rpc.events.FaultEvent;
+		import mx.rpc.events.ResultEvent;
+		import mx.rpc.http.HTTPService;
+		import mx.utils.ObjectUtil;
+		import mx.utils.URLUtil;
+		
+		import roxx.edit.CreateAndEditRoutePopUp;
+		import roxx.edit.EditModel;
+		
+		import spark.components.List;
+		import spark.components.gridClasses.GridColumn;
+		import spark.events.DropDownEvent;
+		import spark.events.GridSelectionEvent;
+
+
+      [Embed (source="../res/noImage.png" )]
+      public var IMAGE_NO_IMAGE: Class;
+
+      [Embed (source="../res/loading.png" )]
+      public var IMAGE_LOADING: Class;
+
+
+      [Bindable]
+      public var completeRoutesList: Array = null;
+
+      [Bindable]
+      public var routesForSelectedArea: Array = null;
+
+      [Bindable]
+      public var regionsForSelection: ArrayCollection = null;
+
+      [Bindable]
+      public var sectorsForSelection: ArrayCollection = null;
+
+      [Bindable]
+      public var gradeDistributionDataProvide: ArrayCollection;
+
+
+      [Bindable]
+      private var editModel:EditModel = new EditModel();
+
+
+      private function saveOrUpdate(route: *, doNotChangeImage: Boolean):void{
+
+        if(editModel.fileReference == null){
+          roxxHTTPDataSource.saveOrUpdateRouteWithoutImage(route, doNotChangeImage);
+        } else {
+          roxxHTTPDataSource.saveOrUpdateRouteWithImage(route, editModel.fileReference);
+        }
+
+      }
+
+      private function generateRegionsAndSektorsForSelection(countryChanged:Boolean, regionChanged: Boolean):void{
+
+
+
+        //TODO 03.05.2011 hohenbichler:  routenliste sektorenliste und regionsliste noch aufeinander anwendbar machen
+        //TODO 03.05.2011 hohenbichler:  implement slection of all
+
+        if(countryChanged){
+          regionsForSelection = new ArrayCollection();
+        }
+        sectorsForSelection = new ArrayCollection();
+
+        // Note: In Java we would just use a Set, but flash does not provide such a thing
+        const regions:Dictionary = new Dictionary;
+        const sectors:Dictionary = new Dictionary;
+
+        const country: String = __drillDownMap.currentCountry;
+        if(country == null){
+          // then we are in state world and here the combos are not visible...
+          return;
+        }
+
+        for each (var route:Object in completeRoutesList){
+          if(route.country == country ){
+            if(countryChanged){
+              regions[route.region] = route.region;
+            }
+            if(__cmb_region.selectedItem == "All" || __cmb_region.selectedItem == route.region){
+              sectors[route.sector] = route.sector;
+            }
+          }
+        }
+
+        if(countryChanged){
+          regionsForSelection.addItem("All");
+          for (var r:String in regions){
+            trace("found region: " + r);
+            regionsForSelection.addItem(r);
+          }
+        }
+
+        sectorsForSelection.addItem("All");
+        for (var s:String in sectors){
+          trace("found sector: " + s);
+          sectorsForSelection.addItem(s);
+        }
+
+        if(countryChanged){
+          __cmb_region.selectedIndex = 0;
+        }
+        if(regionChanged){
+          __cmb_sector.selectedIndex = 0;
+        }
+      }
+
+      private function generateRoutesForSelection():void{
+
+        const continent: String = __drillDownMap.currentContinent;
+        if(continent == null){
+          // return with empty Array
+          return;
+        }
+
+        const country: String = __drillDownMap.currentCountry;
+        if(country == null){
+          return;
+        } else {
+
+			const arr:Array = completeRoutesList.filter( function(item:*, index:int, array:Array):Boolean {
+				return item.country == country &&
+							(__cmb_region.selectedItem == "All" || __cmb_region.selectedItem == item.region) &&
+							(__cmb_region.selectedItem == "All" || __cmb_sector.selectedItem == "All" || __cmb_sector.selectedItem == item.sector)
+				} 
+			);
+
+//			const arr:Array = new Array();
+//          for each (var route:Object in completeRoutesList){
+//            if(route.country == country &&
+//              (__cmb_region.selectedItem == "All" || __cmb_region.selectedItem == route.region) &&
+//              (__cmb_region.selectedItem == "All" || __cmb_sector.selectedItem == "All" || __cmb_sector.selectedItem == route.sector) ){
+//              arr.push(route);
+//            }
+//          }
+//        }
+		}
+
+
+
+        // Note: We must set the dataprovider at the end after all relevant data has been collected
+        // otherwise we would get a change notification for an empty array. And for an empty array we could not set a selection...
+        routesForSelectedArea = arr;
+
+        __dataGrid.dataProvider = new ArrayCollection(routesForSelectedArea);
+      }
+
+      private function generateGradeDistributionDataProvider():void{
+
+        const dict:Dictionary = new Dictionary();
+
+//		dict.abbc = 123;
+//		trace("test1: " + dict["abbc"]);
+//		trace("test2: " + dict.abbc);
+
+		
+        gradeDistributionDataProvide = new ArrayCollection();
+
+		
+		for each(var route:Object in routesForSelectedArea){
+	      
+//		   var grade:Object = new Object();
+		  var gradeValue = new Object();
+          // we only want a grade distribution based on the main-value the qualifier does not matter
+          gradeValue = route.grade.value;
+          if(dict[gradeValue] == null){
+            var obj:Object = new Object();
+            obj.count = 0;
+            dict[gradeValue] = obj;
+          }
+		  
+		  
+          (dict[gradeValue] as Object).count = (dict[gradeValue] as Object).count + 1;
+        }
+
+		
+        for(var gradeValue2:Object in dict){
+          var o:Object = new Object();
+          o.grade = gradeValue2 + "- / " + gradeValue2 + " / " + gradeValue2 + "+";
+		  
+		  
+          o.count = dict[gradeValue2].count;
+          gradeDistributionDataProvide.addItem(o);
+
+		  
+		  trace("added object to degreeDistributionDataProvider - grade:  " + gradeValue2 + " count: " + dict[gradeValue2].count);
+        }
+
+      }
+
+      //TODO 27.04.2011 hohenbichler:  currently we always load the complete list of routes for the whole world and all other things are done in the UI. For a real secnario it with a lots of data it would be better to only load the data for the selected country or region...
+      public function routesLoadedHandler(routes: Array):void{
+        completeRoutesList = routes;
+        selecteMapAreaChanged();
+      }
+
+      public function lastSavedOrUpdatedRouteIdChangedHandler(id:String):void{
+        setRouteSelection(id);
+      }
+
+      public function setRouteSelection(id:String = null):void{
+        var selectionIndex: Number = 0;
+        if(id != null){
+          for each(var entry:Object in routesForSelectedArea){
+            if(entry.id != null && entry.id == id){
+              selectionIndex = routesForSelectedArea.indexOf(entry);
+              break;
+            }
+          }
+        }
+        trace("selectionIndex: " + selectionIndex);
+        __dataGrid.selectedIndex = selectionIndex;
+        __dataGrid.validateNow();
+		//TODO: check if still needed with Spark DataGrid
+        //__dataGrid.scrollToIndex(selectionIndex);
+
+        loadImageForCurrentSelection();
+      }
+
+      public function loadImageHandler(image:Bitmap):void{
+        editModel.routeImage = image;
+      }
+
+      protected function application1_creationCompleteHandler(event:FlexEvent):void
+      {
+
+        __dataGrid.addEventListener("deleteRow", deleteRowHandler);
+        __dataGrid.addEventListener("editRow", editRowHandler);
+
+        __dataGrid.addEventListener(CollectionEvent.COLLECTION_CHANGE, __dataGridDataProviderChangeHandler);
+
+        roxxHTTPDataSource.loadRoxxRoutes();
+      }
+
+      protected function deleteRowHandler(event:Event):void {
+		  
+		  const routeToDelet:* = __dataGrid.selectedItem;
+		  
+		  var popup:ConfirmDeletePopup = new ConfirmDeletePopup();
+		  popup.addEventListener(CloseEvent.CLOSE, 
+			  function():void{
+				  if(popup.questionConfirmed){
+					  roxxHTTPDataSource.remove(routeToDelet);
+				  }
+			  }
+		  );
+		  popup.data = routeToDelet.name;
+		  popup.open(this, true);
+      }
+
+      protected function openCreateAndEditPopup(route:*, createNew: Boolean):void {
+        var popup:CreateAndEditRoutePopUp=CreateAndEditRoutePopUp(PopUpManager.createPopUp( this, CreateAndEditRoutePopUp , true));
+        popup.popupSaveOrUpdateHandler = popupSaveOrUpdateHandler;
+        popup.route = route;
+        popup.createNew = createNew;
+        editModel.fileReference = null;
+        popup.editModel = editModel;
+      }
+
+      protected function editRowHandler(event:Event):void {
+        openCreateAndEditPopup(__dataGrid.selectedItem, false);
+      }
+
+      protected function addNewRouteButton_clickHandler(event:MouseEvent):void
+      {
+        openCreateAndEditPopup(new Object(), true);
+      }
+
+      protected function refresh(event:MouseEvent):void
+      {
+        roxxHTTPDataSource.loadRoxxRoutes();
+      }
+
+
+      protected function popupSaveOrUpdateHandler(route:*, doNotChangeImage: Boolean):void {
+        saveOrUpdate(route, doNotChangeImage);
+      }
+
+
+
+
+      private static function routeToString(route: Object):String{
+        if(route == null){
+          return "";
+        }
+        var ret: String = "";
+        ret += "name: " + route.name;
+        ret += " grade: " + RoxxUtils.getRouteGradeDisplayString(route);
+        ret += " country: " + route.country;
+        ret += " region: " + route.region;
+        ret += " sector: " + route.sector;
+        ret += " hasImage: " + route.hasImage;
+        ret += " id: " + route.id;
+        return ret;
+      }
+
+      protected function __dataGrid_changeHandler(event:GridSelectionEvent):void
+      {
+        loadImageForCurrentSelection();
+      }
+
+      protected function loadImageForCurrentSelection():void{
+
+        roxxHTTPDataSource.cancelImageLoading();
+
+        const selectedIndex:int = __dataGrid.selectedIndex;
+        const selectedItem:* = (routesForSelectedArea != null && routesForSelectedArea.length > 0) ? routesForSelectedArea[selectedIndex] : null;
+
+        trace("loadImageForCurrentSelection - current selection: " + routeToString(selectedItem) + " selectedIndex: " + selectedIndex);
+        if(selectedItem != null && selectedItem.id && selectedItem.hasImage == true){
+          // first set the loading image, so that a change is immediately visible
+          editModel.routeImage = new IMAGE_LOADING() as BitmapAsset;
+          // then load the image and display it as soon as it is loaded completely
+          roxxHTTPDataSource.loadRouteImage(__dataGrid.selectedItem.id);
+        } else {
+          editModel.routeImage = new IMAGE_NO_IMAGE() as BitmapAsset;
+        }
+      }
+
+      protected function imageSubtitleFunction(route:Object):String{
+        var ret: String = "";
+        ret += route.name;
+        ret += " (" + RoxxUtils.getRouteGradeDisplayString(route) + ") ";
+        ret += " / " + route.country;
+        ret += " / " + route.region;
+        ret += " / " + route.sector;
+        return ret;
+      }
+
+      private function selecteMapAreaChanged():void{
+        // set states
+        if(__drillDownMap.currentCountry != null){
+          if(currentState != "smallWorld"){
+            currentState = "country";
+          }
+        } else {
+          currentState = "world";
+        }
+
+        // set current area label
+        if(__drillDownMap.currentContinent != null){
+          __currentAreaLabel.text = __drillDownMap.currentContinent;
+        }
+        if(__drillDownMap.currentCountry != null){
+          __currentAreaLabel.text +=  " / " + __drillDownMap.currentCountry;;
+        }
+
+        // set background
+        if(__drillDownMap.currentContinent != null){
+          __drillDownMap.backgroundAlpha = 1;
+        }
+
+        generateDataProvidersForSelections(true, true);
+      }
+
+      private function generateDataProvidersForSelections(countryChanged:Boolean, regionChanged:Boolean):void{
+        generateRegionsAndSektorsForSelection(countryChanged, regionChanged);
+        generateRoutesForSelection();
+        generateGradeDistributionDataProvider();
+      }
+
+      private function selecteMapAreaChanged_eventHandler(evt: SelectedMapAreaChangedEvent):void{
+        selecteMapAreaChanged();
+      }
+
+      protected function __drillDownMap_creationCompleteHandler(event:FlexEvent):void
+      {
+        __drillDownMap.addEventListener(SelectedMapAreaChangedEvent.SELECTED_AREA_CHANGED, selecteMapAreaChanged_eventHandler);
+      }
+
+      protected function __showMapButton_clickHandler(event:MouseEvent):void
+      {
+        if(currentState == "country"){
+          currentState="smallWorld";
+        } else {
+          currentState="country";
+        }
+      }
+
+      protected function __showMapButton_mouseOverHandler(event:MouseEvent):void
+      {
+        __showMapButton.setStyle("textDecoration", "underline");
+//				const size:String = __showMapButton.getStyle("fontSize");
+//				__showMapButton.setStyle("fontSize", (new Number(size)) + 2);
+//				__showMapButton.setStyle("font
+        //		__showMapButton.setStyle("color", "0xDDDDDD");
+      }
+
+      protected function __showMapButton_mouseOutHandler(event:MouseEvent):void
+      {
+        __showMapButton.setStyle("textDecoration", "none");
+//				const size:String = __showMapButton.getStyle("fontSize");
+//				__showMapButton.setStyle("fontSize", (new Number(size)) - 2);
+        //		__showMapButton.setStyle("color", "0xFFFFFF");
+      }
+
+
+      protected function roxxLogo_clickHandler(event:MouseEvent):void
+      {
+        currentState="world";
+        __drillDownMap.__amMap.zoomToGroup(__drillDownMap.dsMain.groupId);
+//				var e: MapEvent = new MapEvent(MapEvent.HOME_BUTTON_CLICKED);
+//				__drillDownMap.__amMap.dispatchEvent(e);
+      }
+
+
+      protected function __dataGridDataProviderChangeHandler(event:CollectionEvent):void
+      {
+        trace("__dataGridDataProviderChangeHandler");
+        setRouteSelection();
+      }
+
+
+      protected function image1_clickHandler(event:MouseEvent):void
+      {
+        var url:String = "http://www.weiglewilczek.com/";
+        var request:URLRequest = new URLRequest(url);
+        try {
+          navigateToURL(request);
+        }
+        catch (e:Error) {
+          trace("Error: " + e);
+        }
+      }
+
+      protected function __cmb_region_closeHandler(event:DropDownEvent):void
+      {
+        generateDataProvidersForSelections(false, true);
+      }
+
+      protected function __cmb_sector_closeHandler(event:DropDownEvent):void
+      {
+        generateDataProvidersForSelections(false, false);
+      }
+
+    ]]>
+  </fx:Script>
+
+
+  <s:states>
+    <s:State name="world"/>
+    <s:State name="country"/>
+    <s:State name="smallWorld"/>
+  </s:states>
+
+
+  <s:transitions>
+    <s:Transition fromState="country" toState="smallWorld">
+      <s:Sequence>
+        <s:Parallel targets="{[__mapContainer, __imageContainer]}" >
+          <s:Resize />
+          <s:Move />
+        </s:Parallel>
+      </s:Sequence>
+    </s:Transition>
+    <s:Transition fromState="smallWorld" toState="country">
+      <s:Sequence>
+        <s:Parallel targets="{[__mapContainer, __imageContainer]}" >
+          <s:Resize />
+          <s:Move />
+        </s:Parallel>
+      </s:Sequence>
+    </s:Transition>
+  </s:transitions>
+
+
+  <roxx:Background visible.world="false" />
+
+  <s:VGroup width="100%"
+        height="100%">
+
+    <s:HGroup id="logoGroup" width="100%" verticalAlign="bottom">
+      <s:Label id="roxxLogo" text="ROXX" fontSize="60" fontWeight="bold" verticalAlign="bottom"
+           color="#9b1d23"
+           click="roxxLogo_clickHandler(event)"
+           />
+      <s:Label text="The new rock climbing database" fontSize="20"
+           color="#9b1d23"/>
+      <mx:Spacer width="30"/>
+      <s:Label text="Currently viewing: "/>
+      <s:Label id="__currentAreaLabel" text="world"/>
+      <s:HGroup horizontalAlign="right" width="100%" height="100%" verticalAlign="bottom">
+        <s:VGroup verticalAlign="bottom" height="100%">
+          <s:Label text="Powered by:" fontWeight="bold" />
+          <s:Label text="Weigle Wilczek GmbH" fontWeight="bold" />
+        </s:VGroup>
+        <mx:Spacer width="5"/>
+        <mx:Image source="@Embed('../res/ww-logo.png')" click="image1_clickHandler(event)" />
+      </s:HGroup>
+    </s:HGroup>
+
+    <mx:Spacer height="20" />
+
+    <mx:VBox width="100%" height="100%" verticalAlign="top">
+
+      <mx:TextArea id="errorTextArea" text="{roxxHTTPDataSource.errorText}" visible="{roxxHTTPDataSource.errorText != null}" height="{roxxHTTPDataSource.errorText != null ? 200 : 0}" width="100%"></mx:TextArea>
+
+      <s:HGroup
+        width.world="100%" width.country="100%" width.smallWorld="100%"
+        height.world="100%" height.country="250" height.smallWorld="250"
+        >
+
+        <s:BorderContainer id="__mapContainer" backgroundAlpha.world="0" backgroundColor.smallWorld="#494949" backgroundColor.country="#494949"
+                   borderVisible="false"
+                   width.world="100%" width.country="70" width.smallWorld="100%"
+                   height.world="100%" height.country="100%" height.smallWorld="100%"
+                   >
+          <s:HGroup
+            width.world="100%" width.country="100%" width.smallWorld="100%"
+            height.world="100%" height.country="100%" height.smallWorld="100%"
+            verticalAlign="middle"
+            >
+            <mx:Spacer width="5" />
+            <s:Label id="__showMapButton" text="MAP" rotationZ="-90" fontSize="60" fontWeight="bold"
+                 visible.world="false"
+                 click="__showMapButton_clickHandler(event)"
+                 mouseOver="__showMapButton_mouseOverHandler(event)"
+                 mouseOut="__showMapButton_mouseOutHandler(event)"
+                 />
+            <mx:Spacer width="5" />
+            <roxx:DrillDownMap id="__drillDownMap"
+                       width.world="100%" width.country="0" width.smallWorld="95%"
+                       height.world="100%" height.country="0" height.smallWorld="95%"
+                       visible.world="true" visible.country="false" visible.smallWorld="true"
+
+                       creationComplete="__drillDownMap_creationCompleteHandler(event)" backgroundAlpha="0.6" />
+            <mx:Spacer width="5" />
+          </s:HGroup>
+        </s:BorderContainer>
+
+        <s:VGroup id="__imageContainer" width.world="0" width.country="100%"  visible.world="false" visible.country="true" horizontalAlign="center" verticalAlign="middle">
+          <!-- TODO 26.04.2011 hohenbichler: make the BorderContainer auto-fit the resized image - not that easy... problems become visible with backgroundColor="0xFF0000"  -->
+          <!--<s:BorderContainer dropShadowVisible="true" width="{__image.width}" height="{__image.height}">-->
+          <s:HGroup id="__imageGroup" width="100%" height="100%" horizontalAlign="center" verticalAlign="top">
+			  <mx:Image id="__image" source="{editModel.routeImage}" maxHeight="230" maxWidth="400"/>
+          </s:HGroup>
+          <!--</s:BorderContainer>-->
+          <s:HGroup width="100%" horizontalAlign="center">
+            <s:Label text="{imageSubtitleFunction(__dataGrid.selectedItem)}"/>
+          </s:HGroup>
+        </s:VGroup>
+
+      </s:HGroup>
+
+
+      <mx:HBox id="newAndRefreshButtons" width="100%" visible.world="false" visible.country="true" horizontalAlign="right">
+        <s:ComboBox id="__cmb_region" dataProvider="{regionsForSelection}" width="100" close="__cmb_region_closeHandler(event)"/>
+        <s:ComboBox id="__cmb_sector" dataProvider="{sectorsForSelection}" width="100" close="__cmb_sector_closeHandler(event)"/>
+        <mx:Button id="addNewRouteButton" icon="@Embed('../res/add.png')" label="Add new" click="addNewRouteButton_clickHandler(event)"/>
+        <mx:Button label="Refresh" click="refresh(event)"/>
+      </mx:HBox>
+
+      <s:HGroup width="100%" height.world="0" height="100%" visible.world="false" >
+
+        <s:VGroup width="40%" height="100%" >
+
+          <s:Label text="Difficulty degree distiribution" toolTip="Difficulty degree distiribution for the chosen area"
+               fontWeight="bold" />
+
+          <mx:BarChart width="100%" height="100%" dataProvider="{gradeDistributionDataProvide}">
+
+            <mx:verticalAxis>
+              <mx:CategoryAxis categoryField="grade" />
+            </mx:verticalAxis>
+
+            <mx:series>
+              <mx:BarSeries yField="grade" xField="count" displayName="count" showDataEffect="rearrangeData" color="0xe9542a" />
+            </mx:series>
+
+          </mx:BarChart>
+
+        </s:VGroup>
+
+        <mx:Spacer width="2%"/>
+
+        <s:BorderContainer dropShadowVisible="true" width="60%" height="100%" chromeColor="0x000000" color="0xFFFFFF">
+		  <!-- MARKER-02XXX: DataGrid, dataProvider, dataField, chromeColor, Skinning, CSS -->
+			
+			
+			<roxx:RoxxRoutesDataGrid	id="__dataGrid" 
+										dataProvider="{new ArrayCollection(routesForSelectedArea)}" 
+										width="100%"
+										height="100%"
+										selectionChange="__dataGrid_changeHandler(event)"
+										>
+			</roxx:RoxxRoutesDataGrid>
+			
+		</s:BorderContainer>
+			
+      </s:HGroup>
+
+      <mx:Spacer height="2" />
+      <mx:HRule width="100%" />
+      <s:HGroup width="100%" horizontalAlign="center">
+        <s:Label fontWeight="bold" text="Used Technologies:" />
+        <s:Label text="Scala, Akka, MongoDB, REST, Flex" />
+      </s:HGroup>
+
+    </mx:VBox>
+
+
+  </s:VGroup>
+
+</s:Group>

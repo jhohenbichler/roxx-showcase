@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:DataGrid xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			xmlns:s="library://ns.adobe.com/flex/spark"
+			
+			variableRowHeight="true"  styleName="dataGrid" 
+			chromeColor="0x000000" color="0xFFFFFF"
+			alternatingRowColors="[0x4444444, 0x777777]"
+			verticalScrollPolicy="on"
+			horizontalScrollPolicy="on"
+			width="100%"
+			height="100%"
+			>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	
+	<fx:Script>
+		<![CDATA[
+			
+			private function gradeLabelFunction(item:Object, column:GridColumn):String{
+				return RoxxUtils.getRouteGradeDisplayString(item);
+			}
+
+		]]>
+	</fx:Script>
+	
+	
+	<s:columns>
+		
+		<s:ArrayList>
+		
+			<s:GridColumn width="40">
+				<s:itemRenderer>
+					<fx:Component>
+						<s:GridItemRenderer>
+							<s:HGroup verticalAlign="middle" horizontalAlign="center" width="100%" height="100%">
+								<s:Image source="@Embed('../res/delete.png')" click="dispatchEvent(new Event('deleteRow', true))" width="15" verticalAlign="middle" horizontalAlign="center"/>
+								<s:Image source="@Embed('../res/table_edit.png')" click="dispatchEvent(new Event('editRow', true))" width="15" verticalAlign="middle" horizontalAlign="center"/>
+							</s:HGroup>
+						</s:GridItemRenderer>
+					</fx:Component>
+				</s:itemRenderer>
+			</s:GridColumn>
+			
+			<s:GridColumn headerText="name" dataField="name" sortable="true" width="100"/>
+			<s:GridColumn headerText="grade" labelFunction="gradeLabelFunction" width="60" />
+			<s:GridColumn headerText="country" dataField="country" sortable="true" width="100"/>
+			<s:GridColumn headerText="region" dataField="region" sortable="true" width="100"/>
+			<s:GridColumn headerText="sector" dataField="sector" sortable="true" width="100"/>
+			
+			<s:GridColumn headerText="img" dataField="hasImage" sortable="true" >
+				<s:itemRenderer>
+					<fx:Component>
+						<s:GridItemRenderer>
+							<s:HGroup verticalAlign="middle" horizontalAlign="center" width="100%" height="100%">
+								<s:Image source="@Embed('../res/images.png')" 
+										 visible="{data.hasImage == true}" 
+										 toolTip="The route has an Image" 
+										 height="{data.hasImage == true ? 20 : 0}"
+										 />
+							</s:HGroup>
+						</s:GridItemRenderer>
+					</fx:Component>
+				</s:itemRenderer>
+			</s:GridColumn>
+			
+		</s:ArrayList>
+		
+	</s:columns>
+	
+	
+</s:DataGrid>

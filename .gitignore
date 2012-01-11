@@ -1,0 +1,49 @@
+# SBT
+target
+lib_managed
+src_managed
+boot
+roxx/project/plugins/project
+sbt-launch-*
+sbt-start.bat
+
+# personalized property-files
+roxx-server/roxx/src/main/resources/mongoconfig.properties
+
+# Mac
+.DS_Store
+
+# Eclipse
+.classpath
+.launch
+.metadata
+.scala_dependencies
+.settings
+
+# IntelliJ
+.idea
+*.iml
+*.ipr
+*.iws
+out
+
+# TextMate
+*.tmproj
+
+# This project
+roxx.log
+
+#Flash
+roxx-ui_flex4flashPlayer/bin-debug/
+roxx-ui_flex4mobile/bin-debug/
+roxx-ui_flex4flashPlayer/libs/roxx-ui-shared.swc
+roxx-ui_flex4flashPlayer/ant-build/
+roxx-ui_flex4mobile/bin-release/
+roxx-ui_shared/ant-build/
+roxx-ui_shared/bin/*
+roxx-ui_flex4flashPlayer/bin-release/
+roxx-ui_flex4mobile/bin-release-temp/
+
+#Sample Images
+roxx/*.png
+roxx/*.jpg

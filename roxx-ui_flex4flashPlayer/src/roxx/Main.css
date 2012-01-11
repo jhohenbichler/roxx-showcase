@@ -1,0 +1,27 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+
+s|Label
+{
+	color: #FFFFFF;
+	chrome-color: #FFFFFF;
+}
+s|ComboBox
+{
+	color: #FFFFFF;
+	content-background-color: #000000;
+	selection-color: #000000;
+}
+mx|FormItem{
+	color: #FFFFFF;
+}
+
+mx|TextInput{
+	color: #000000;
+}
+
+mx|BarChart
+{
+	color: #FFFFFF;
+}
